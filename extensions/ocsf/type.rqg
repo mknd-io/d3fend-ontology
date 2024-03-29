@@ -1,0 +1,88 @@
+PREFIX ocsf: <https://schema.ocsf.io/1.1.0-dev/ontology/>
+PREFIX d3f: <http://d3fend.mitre.org/ontologies/d3fend.owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX jsonschema: <https://www.w3.org/2019/wot/json-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX iter: <http://w3id.org/sparql-generate/iter/>
+PREFIX fun: <http://w3id.org/sparql-generate/fn/>
+
+# rdfs:seeAlso <https://schema.ocsf.io/1.1.0-dev/data_types>
+
+# The data type is like an attribute with the following additional
+# properties:
+
+# {
+#   "properties": {
+#     "max_len": {
+#       "type": "integer",
+#       "description": "The maximum length of this data type.",
+#       "minimum": 0
+#     },
+#     "observable": {
+#       "$ref": "observable.schema.json"
+#     },
+#     "range": {
+#       "type": "array",
+#       "description": "A range of values that are valid for this data type.",
+#       "minItems": 2,
+#       "maxItems": 2
+#     },
+#     "regex": {
+#       "type": "string",
+#       "description": "A regular expression constraint for this data type.",
+#       "format": "regex"
+#     },
+#     "type": {
+#       "type": "string",
+#       "description": "The data type for this attribute. Should reference another defined type."
+#     },
+#     "type_name": {
+#       "type": "string",
+#       "description": "The human-readable name of the data type for this attribute."
+#     },
+#     "values": {
+#       "type": "array",
+#       "description": "A set of fixed values for this data type."
+#     }
+#   }
+# }
+
+GENERATE <https://schema.ocsf.io/1.1.0-dev/type> ( ?source, ?typeIRI, ?typeKey ) {
+  ?typeIRI a rdfs:Datatype ;
+    rdfs:subClassOf ?supertype ;
+    rdfs:label ?caption ;
+    dcterms:description ?description ;
+    # ocsf:observable ?observable ;
+    # jsonschema:maxLength ?max_len ;
+    xsd:minInclusive ?min ;
+    xsd:maxInclusive ?max ;
+    xsd:pattern ?regex .
+}
+
+ITERATOR iter:JSONPath(?source, "$", "$.caption", "$.description", "$.observable", "$.type", "$.type_name", "$.max_len", "$.regex", "$.range", "$.values") AS ?this ?caption ?description ?observable ?type ?type_name ?max_len ?regex ?range ?values
+
+WHERE {
+  BIND (COALESCE(
+		 IF(?type = "string_t", xsd:string, 1/0),
+		 IF(?typeKey = "string_t", xsd:string, 1/0),
+		 IF(?type = "integer_t", xsd:integer, 1/0),
+		 IF(?typeKey = "integer_t", xsd:integer, 1/0),
+		 IF(?type = "float_t", xsd:decimal, 1/0),
+		 IF(?typeKey = "float_t", xsd:decimal, 1/0),
+		 IF(?type = "boolean_t", xsd:boolean, 1/0),
+		 IF(?typeKey = "boolean_t", xsd:boolean, 1/0),
+		 IF(?type = "long_t", xsd:long, 1/0),
+		 IF(?typeKey = "long_t", xsd:long, 1/0),
+		 IF(?type = "json_t", rdf:JSON, 1/0),
+		 IF(?typeKey = "json_t", rdf:JSON, 1/0),
+		 rdfs:Literal
+		 ) 
+	AS ?supertype)
+
+  BIND ( fun:JSONPath(?range, "$[0]") AS ?min )
+  BIND ( fun:JSONPath(?range, "$[1]") AS ?max )
+}
